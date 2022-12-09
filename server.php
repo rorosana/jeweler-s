@@ -1,8 +1,7 @@
 <?php
-
 require_once("lib/nusoap.php");
 
-$namespace = "http://localhost/devs_rosa/act05/jeweler-s/server.php";
+$namespace = "http://localhost/clase12/servidor_dani.php";
 $server = new soap_server();
 $server->configureWSDL("Jeweler", $namespace);
 $server->schemTargetNamespace = $namespace;
@@ -10,17 +9,24 @@ $server->soap_defencoding = "UTF-8";
 
 
 //FUNCIONES
-
-function crear_pelicula($con, $titulo, $director, $sinopsis){
-	$resultado = mysqli_query($con, "insert into pelicula(titulo, director, sinopsis) values('$titulo', $director, '$sinopsis')");
-	return $resultado;
+function holaMundo(){
+	return "HOLA MUNDO!!!";
 }
 
-//FUNCION PARA INSERTAR NUEVOS PRODUCTOS EN LA BASE DE DATOS JEWEL.
-function insertProduct(){
-	require_once('database.php');
+function suma($a, $b){
+	return $a + $b;
+}
+
+function resta($a, $b){
+	return $a - $b;
+}
+
+
+//FUNCION PARA GESTIONAR LA BASE DE DATOS Y LISTAR LAS SERIES.
+function listaSeries(){
+	require_once('datos.php');
 	$misSeries = array();
-	$conn = mysqli_connect($server, $username, $password, $database);
+	$con = mysqli_connect($server, $username, $password, $database);
 	$series = mysqli_query($con, "select * from serie");
 	while($serie = mysqli_fetch_assoc($series)){
 		$misSeries[] = $serie;
@@ -79,4 +85,54 @@ $server->register(
     'Método que devuelve una array con las series de una base de datos'
 );
 
+/*function listaPelis(){
+	$misPelis = array();
+	$con = mysqli_connect("localhost", "root", "",  "series");
+	$pelis = mysqli_query($con, "select id_pelicula, titulo, sinopsis, nombre from pelicula, director where director=id_director");
+	while($peli = mysqli_fetch_assoc($pelis)){
+		$misPelis[] = $peli;
+	}
+	mysqli_close($con);
+	return $misPelis;
+}*/
+
+//DEFINICIÓN DE TIPOS COMPLEJOS
+//$server->wsdl->addComplexType();
+//$server->wsdl->addComplexType();
+
+//REGISTRO DE FUNCIONES
+$server->register(
+	'holaMundo',						//Nombre de la función a ejecutar
+	array(),							//Parámetros de entrada
+	array('return'=>'xsd:string'),		//Valores devueltos
+	$namespace,
+	false,								//soapaction
+	'rpc',								//Cómo se envían los mensajes
+	'encoded',							//Serialización
+	'Función que devuelve un mensaje de bienvenida'
+);
+
+$server->register(
+	'suma',
+	array('a'=>'xsd:int', 'b'=>'xsd:int'),
+	array('return'=>'xsd:int'),
+	$namespace,
+	false,
+	'rpc',
+	'encoded',
+	'Función que recibe dos enteros y devuelve el resultado de la suma'
+);
+
+$server->register(
+	'resta',
+	array('a'=>'xsd:int', 'b'=>'xsd:int'),
+	array('return'=>'xsd:int'),
+	$namespace,
+	false,
+	'rpc',
+	'encoded',
+	'Función que recibe dos enteros y devuelve el resultado de la resta'
+);
+
+$server->service(file_get_contents("php://input"));
 ?>
