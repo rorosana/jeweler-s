@@ -1,0 +1,26 @@
+/*Sentencias sql en phpmyadmin*/
+
+CREATE DATABASE IF NOT EXISTS jewel; 
+
+USE jewel;
+
+CREATE TABLE IF NOT EXISTS category(
+    id_category INT primary key,
+    name_category VARCHAR(50)
+);
+
+CREATE TABLE IF NOT EXISTS product(
+    id_product INT auto_increment primary key,
+    name_product VARCHAR(50),
+    category INT,
+    foreign key (category) REFERENCES category(category)
+);
+
+--Insertamos las categorías:
+
+INSERT INTO category (id_category, name_category) VALUES (1, 'Earrings');
+INSERT INTO category (id_category, name_category) VALUES (2, 'Necklaces');
+INSERT INTO category (id_category, name_category) VALUES (3, 'Bracelets');
+INSERT INTO category (id_category, name_category) VALUES (4, 'Rings');
+
+--Rosa Ana Patiño Caraballo.

@@ -1,137 +1,125 @@
-<?php
+<?php 
 require_once("lib/nusoap.php");
 
-$namespace = "http://localhost/clase12/servidor_dani.php";
+$namespace = "http://localhost/devs_rosa/act05/jeweler-s/server.php";
 $server = new soap_server();
 $server->configureWSDL("Jeweler", $namespace);
 $server->schemTargetNamespace = $namespace;
 $server->soap_defencoding = "UTF-8";
 
-
-//FUNCIONES
-function holaMundo(){
-	return "HOLA MUNDO!!!";
-}
-
-function suma($a, $b){
-	return $a + $b;
-}
-
-function resta($a, $b){
-	return $a - $b;
-}
-
-
-//FUNCION PARA GESTIONAR LA BASE DE DATOS Y LISTAR LAS SERIES.
-function listaSeries(){
-	require_once('datos.php');
-	$misSeries = array();
+//FUNCION PARA INSERTAR UN PRODUCTO
+function insertProduct($name_product, $category){//la función recibe losparámetros del lado del cliente.
+	require_once('database.php');
 	$con = mysqli_connect($server, $username, $password, $database);
-	$series = mysqli_query($con, "select * from serie");
-	while($serie = mysqli_fetch_assoc($series)){
-		$misSeries[] = $serie;
+	$newProduct = mysqli_query($con, "insert into product(name_product, category) values('$name_product', $category);");
+	mysqli_close($con);
+}
+
+$server->register(
+	'insertProduct',
+	array('name_product'=>'xsd:string', 'category'=>'xsd:int'),//entrada 
+	array(),
+	$namespace,
+	false,
+	'rpc',
+	'encoded',
+    'Método que inserta un producto en la bdd'
+);
+
+//FUNCIÓN ARRAY CATEGORÍAS
+function categoryList(){
+	require_once('database.php');
+	$categories = array();
+	$con = mysqli_connect($server, $username, $password, $database);
+	$productsCats = mysqli_query($con, "SELECT * FROM category;");
+	while($productCat = mysqli_fetch_assoc($productsCats)){
+		$categories[] = $productCat;
 	}
 	mysqli_close($con);
-	return $misSeries;
+	return $categories;
 }
 
 //DEFINICIÓN DE TIPOS COMPLEJOS
-
 $server->wsdl->addComplexType(
-	'Serie',
-	'complexType',
-	'struct',
-	'all',
-	'',
-	array(
-             'codigo' => 
-             array('name'=>'codigo','type'=>'xsd:int'),
-             'nombre' => 
-             array('name'=>'nombre','type'=>'xsd:string'),
-             'genero' => 
-             array('name'=>'genero','type'=>'xsd:string'),
-             'anyo' => 
-             array('name'=>'anyo','type'=>'xsd:int'),
-             'canal' => 
-             array('name'=>'canal','type'=>'xsd:int')
-	)
+	'Category', 		//name
+	'complexType', 	//typeClass
+	'struct', 		//PhpClass: array | struct(array asociativo)
+	'sequence', 	//compositor: sequence | choice | all
+	'', 			//restrictionBase
+	array(			//elements
+		'id_category'=>array('name'=>'id_category', 'type'=>'xsd:int'),
+		'name_category'=>array('name'=>'name_category', 'type'=>'xsd:string')
+		)
 );
 
 $server->wsdl->addComplexType(
-	'ArraySeries',
+	'ArrayCategories',
 	'complexType',
 	'array',
-	'',
+	'sequence',
 	'SOAP-ENC:Array',
 	array(),
-	array(
-	array('ref'=>'SOAP-ENC:arrayType', 
-	'wsdl:arrayType'=>'tns:Serie[]')),
-	'tns:Serie'
-	
-	);
-
-
-//REGISTRO DEL MÉTODO
-
+	array(array('ref'=>'SOAP-ENC:arrayType', 'wsdl:arrayType'=>'tns:Category[]')),
+	'tns:Category'
+);
+//Registro de la función
 $server->register(
-	'listaSeries',
+	'categoryList',
 	array(),
-	array('return'=>'tns:ArraySeries'),
+	array('return'=>'tns:ArrayCategories'),
 	$namespace,
 	false,
 	'rpc',
 	'encoded',
-    'Método que devuelve una array con las series de una base de datos'
+	'Función que devuelve un array con los datos de las categorías almcenadas en la base de datos.'
 );
 
-/*function listaPelis(){
-	$misPelis = array();
-	$con = mysqli_connect("localhost", "root", "",  "series");
-	$pelis = mysqli_query($con, "select id_pelicula, titulo, sinopsis, nombre from pelicula, director where director=id_director");
-	while($peli = mysqli_fetch_assoc($pelis)){
-		$misPelis[] = $peli;
+//OBTENER TODOS LOS PRODUCTOS DE UNA DETERMINADA CATEGORÍA.
+function get_products($category){
+	$products = array();
+	require_once('database.php');
+	$con = mysqli_connect($server, $username, $password, $database);
+	$resultado = mysqli_query($con, "SELECT category, name_product  FROM product WHERE category = $category");
+	while($result = mysqli_fetch_assoc($resultado)){
+		$products[] = $result;
 	}
 	mysqli_close($con);
-	return $misPelis;
-}*/
+	return $products;
+}
 
 //DEFINICIÓN DE TIPOS COMPLEJOS
-//$server->wsdl->addComplexType();
-//$server->wsdl->addComplexType();
-
-//REGISTRO DE FUNCIONES
-$server->register(
-	'holaMundo',						//Nombre de la función a ejecutar
-	array(),							//Parámetros de entrada
-	array('return'=>'xsd:string'),		//Valores devueltos
-	$namespace,
-	false,								//soapaction
-	'rpc',								//Cómo se envían los mensajes
-	'encoded',							//Serialización
-	'Función que devuelve un mensaje de bienvenida'
+$server->wsdl->addComplexType(
+	'Product', 		//name
+	'complexType', 	//typeClass
+	'struct', 		//PhpClass: array | struct(array asociativo)
+	'sequence', 	//compositor: sequence | choice | all
+	'', 			//restrictionBase
+	array(			//elements
+		'category'=>array('name'=>'category', 'type'=>'xsd:int'),
+		'name_product'=>array('name'=>'name_product', 'type'=>'xsd:string')
+		)
 );
 
+$server->wsdl->addComplexType(
+	'ArrayProducts',
+	'complexType',
+	'array',
+	'sequence',
+	'SOAP-ENC:Array',
+	array(),
+	array(array('ref'=>'SOAP-ENC:arrayType', 'wsdl:arrayType'=>'tns:Product[]')),
+	'tns:Product'
+);
+//Registro de la función
 $server->register(
-	'suma',
-	array('a'=>'xsd:int', 'b'=>'xsd:int'),
-	array('return'=>'xsd:int'),
+	'get_products',
+	array('category'=>'xsd:int'),
+	array('return'=>'tns:ArrayProducts'),
 	$namespace,
 	false,
 	'rpc',
 	'encoded',
-	'Función que recibe dos enteros y devuelve el resultado de la suma'
-);
-
-$server->register(
-	'resta',
-	array('a'=>'xsd:int', 'b'=>'xsd:int'),
-	array('return'=>'xsd:int'),
-	$namespace,
-	false,
-	'rpc',
-	'encoded',
-	'Función que recibe dos enteros y devuelve el resultado de la resta'
+	'Función que devuelve un array con los datos de las categorías almcenadas en la base de datos.'
 );
 
 $server->service(file_get_contents("php://input"));
